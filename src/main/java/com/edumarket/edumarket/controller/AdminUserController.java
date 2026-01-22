@@ -44,7 +44,11 @@ public class AdminUserController {
     }
 
     @PostMapping("/{id}/activate")
-    public String activateUser(@PathVariable("id") Long id, RedirectAttributes redirectAttributes) {
+    public String activateUser(@PathVariable("id") Long id, 
+                              @RequestParam(value = "page", defaultValue = "0", required = false) int page,
+                              @RequestParam(value = "size", defaultValue = "10", required = false) int size,
+                              @RequestParam(value = "search", required = false) String search,
+                              RedirectAttributes redirectAttributes) {
         if (id == null) {
             redirectAttributes.addFlashAttribute("error", "Invalid user ID!");
             return "redirect:/admin/users";
@@ -58,11 +62,19 @@ public class AdminUserController {
         } else {
             redirectAttributes.addFlashAttribute("error", "User not found!");
         }
-        return "redirect:/admin/users";
+        String redirectUrl = "/admin/users?page=" + page + "&size=" + size;
+        if (search != null && !search.isEmpty()) {
+            redirectUrl += "&search=" + search;
+        }
+        return "redirect:" + redirectUrl;
     }
 
     @PostMapping("/{id}/deactivate")
-    public String deactivateUser(@PathVariable("id") Long id, RedirectAttributes redirectAttributes) {
+    public String deactivateUser(@PathVariable("id") Long id,
+                                @RequestParam(value = "page", defaultValue = "0", required = false) int page,
+                                @RequestParam(value = "size", defaultValue = "10", required = false) int size,
+                                @RequestParam(value = "search", required = false) String search,
+                                RedirectAttributes redirectAttributes) {
         if (id == null) {
             redirectAttributes.addFlashAttribute("error", "Invalid user ID!");
             return "redirect:/admin/users";
@@ -76,6 +88,27 @@ public class AdminUserController {
         } else {
             redirectAttributes.addFlashAttribute("error", "User not found!");
         }
-        return "redirect:/admin/users";
+        String redirectUrl = "/admin/users?page=" + page + "&size=" + size;
+        if (search != null && !search.isEmpty()) {
+            redirectUrl += "&search=" + search;
+        }
+        return "redirect:" + redirectUrl;
+    }
+
+    @GetMapping("/{id}")
+    public String viewUserDetail(@PathVariable("id") Long id, Model model, RedirectAttributes redirectAttributes) {
+        if (id == null) {
+            redirectAttributes.addFlashAttribute("error", "Invalid user ID!");
+            return "redirect:/admin/users";
+        }
+        Optional<User> userOpt = userRepository.findById(id);
+        if (userOpt.isPresent()) {
+            User user = userOpt.get();
+            model.addAttribute("user", user);
+            return "admin/users/detail";
+        } else {
+            redirectAttributes.addFlashAttribute("error", "User not found!");
+            return "redirect:/admin/users";
+        }
     }
 }

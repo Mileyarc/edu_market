@@ -49,14 +49,21 @@
                     </td>
                     <td th:text="${user.role}"></td>
                     <td>
+                        <a th:href="@{/admin/users/{id}(id=${user.id})}" class="btn btn-sm btn-info">View Details</a>
                         <form th:if="${user.active}" 
                               th:action="@{/admin/users/{id}/deactivate(id=${user.id})}" 
                               method="post" style="display: inline;">
+                            <input type="hidden" name="page" th:value="${currentPage}">
+                            <input type="hidden" name="size" th:value="10">
+                            <input type="hidden" name="search" th:value="${search}">
                             <button type="submit" class="btn btn-sm btn-warning">Deactivate</button>
                         </form>
                         <form th:if="${!user.active}" 
                               th:action="@{/admin/users/{id}/activate(id=${user.id})}" 
                               method="post" style="display: inline;">
+                            <input type="hidden" name="page" th:value="${currentPage}">
+                            <input type="hidden" name="size" th:value="10">
+                            <input type="hidden" name="search" th:value="${search}">
                             <button type="submit" class="btn btn-sm btn-success">Activate</button>
                         </form>
                     </td>
