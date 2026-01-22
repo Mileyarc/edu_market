@@ -9,7 +9,7 @@
     <div class="container mt-4">
         <h2 th:text="${formTitle}"></h2>
 
-        <form th:action="@{${actionUrl}}" th:object="${course}" method="post" class="mt-4">
+        <form th:action="@{${actionUrl}}" th:object="${course}" method="post" enctype="multipart/form-data" class="mt-4">
             
             <div class="mb-3">
                 <label for="title" class="form-label">Title</label>
@@ -80,6 +80,15 @@
             <div class="mb-3">
                 <label for="note" class="form-label">Note</label>
                 <input type="text" class="form-control" id="note" th:field="*{note}">
+            </div>
+
+            <div class="mb-3">
+                <label for="imageFile" class="form-label">Course Image</label>
+                <input type="file" class="form-control" id="imageFile" name="imageFile" accept="image/*">
+                <small class="form-text text-muted">Upload an image for this course</small>
+                <div th:if="${course.image != null && !course.image.isEmpty()}">
+                    <img th:src="@{${course.image}}" alt="Course image" style="max-width: 200px; margin-top: 10px;">
+                </div>
             </div>
             
             <div class="mb-3">

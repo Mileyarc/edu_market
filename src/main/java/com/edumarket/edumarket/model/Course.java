@@ -31,6 +31,8 @@ public class Course {
 
     private String note;
 
+    private String image; // Path to course image
+
     // Getters and Setters
     public Long getId() {
         return id;
@@ -86,5 +88,13 @@ public class Course {
 
     public void setNote(String note) {
         this.note = note;
+    }
+
+    public String getImage() {
+        return image;
+    }
+
+    public void setImage(String image) {
+        this.image = image;
     }
 }

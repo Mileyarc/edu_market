@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>Course Enrollers</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body>
+    <div class="container mt-4">
+        <h2>Enrollers for: <span th:text="${course.title}"></span></h2>
+        
+        <div th:if="${success}" class="alert alert-success" role="alert">
+            <span th:text="${success}"></span>
+        </div>
+
+        <a th:href="@{/admin/courses}" class="btn btn-secondary mb-3">Back to Courses</a>
+
+        <table class="table table-striped">
+            <thead>
+                <tr>
+                    <th>Email</th>
+                    <th>Full Name</th>
+                    <th>Age</th>
+                    <th>Phone Number</th>
+                    <th>Status</th>
+                    <th>Enrolled At</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr th:if="${#lists.isEmpty(enrollments)}">
+                    <td colspan="7" class="text-center">No enrollments found</td>
+                </tr>
+                <tr th:each="enrollment : ${enrollments}">
+                    <td th:text="${enrollment.user.email}"></td>
+                    <td th:text="${enrollment.user.fullName}"></td>
+                    <td th:text="${enrollment.user.age}"></td>
+                    <td th:text="${enrollment.user.phoneNumber}"></td>
+                    <td>
+                        <span th:if="${enrollment.status == 'PENDING'}" class="badge bg-warning" th:text="${enrollment.status}"></span>
+                        <span th:if="${enrollment.status == 'APPROVED'}" class="badge bg-success" th:text="${enrollment.status}"></span>
+                    </td>
+                    <td th:text="${#temporals.format(enrollment.enrolledAt, 'yyyy-MM-dd HH:mm')}"></td>
+                    <td>
+                        <form th:if="${enrollment.status == 'PENDING'}" 
+                              th:action="@{/admin/courses/{courseId}/enrollers/{enrollmentId}/approve(courseId=${course.id}, enrollmentId=${enrollment.id})}" 
+                              method="post" style="display: inline;">
+                            <button type="submit" class="btn btn-sm btn-success">Approve</button>
+                        </form>
+                        <span th:if="${enrollment.status == 'APPROVED'}" class="text-success">Approved</span>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</body>
+</html>

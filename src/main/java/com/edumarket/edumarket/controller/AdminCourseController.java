@@ -8,14 +8,22 @@ import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import com.edumarket.edumarket.model.Course;
+import com.edumarket.edumarket.model.Enrollment;
 import com.edumarket.edumarket.repository.CourseRepository;
+import com.edumarket.edumarket.repository.EnrollmentRepository;
 import com.edumarket.edumarket.model.Category;
 import com.edumarket.edumarket.repository.CategoryRepository;
 
 import jakarta.validation.Valid;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
 import java.util.List;
 import java.util.Optional;
 
@@ -28,6 +36,11 @@ public class AdminCourseController {
 
     @Autowired
     private CategoryRepository categoryRepository;
+
+    @Autowired
+    private EnrollmentRepository enrollmentRepository;
+
+    private static final String UPLOAD_DIR = "src/main/resources/static/images/courses/";
 
     @GetMapping
     public String listCourses(Model model,
@@ -62,7 +75,8 @@ public class AdminCourseController {
                              BindingResult result,
                              RedirectAttributes redirectAttributes,
                              @RequestParam(value = "categoryId", required = false) String categoryId,
-                             @RequestParam(value = "newCategory", required = false) String newCategory) {
+                             @RequestParam(value = "newCategory", required = false) String newCategory,
+                             @RequestParam(value = "imageFile", required = false) MultipartFile imageFile) {
         if (result.hasErrors()) {
             return "admin/courses/form";
         }
@@ -75,19 +89,52 @@ public class AdminCourseController {
                 });
             course.setCategory(cat);
         } else if (categoryId != null && !"add_new".equals(categoryId)) {
-            Optional<Category> catOpt = categoryRepository.findById(Long.valueOf(categoryId));
+            try {
+                Long categoryIdLong = Long.valueOf(categoryId);
+                if (categoryIdLong != null) {
+                    Optional<Category> catOpt = categoryRepository.findById(categoryIdLong);
             catOpt.ifPresent(course::setCategory);
+                }
+            } catch (NumberFormatException e) {
+                result.rejectValue("category", "error.course", "Invalid category ID");
+                return "admin/courses/form";
+            }
         } else {
             result.rejectValue("category", "error.course", "Category is required");
             return "admin/courses/form";
         }
+
+        // Handle image upload
+        if (imageFile != null && !imageFile.isEmpty()) {
+            try {
+                String fileName = System.currentTimeMillis() + "_" + imageFile.getOriginalFilename();
+                Path uploadPath = Paths.get(UPLOAD_DIR);
+                if (!Files.exists(uploadPath)) {
+                    Files.createDirectories(uploadPath);
+                }
+                Path filePath = uploadPath.resolve(fileName);
+                Files.copy(imageFile.getInputStream(), filePath, StandardCopyOption.REPLACE_EXISTING);
+                course.setImage("/images/courses/" + fileName);
+            } catch (IOException e) {
+                redirectAttributes.addFlashAttribute("error", "Failed to upload image: " + e.getMessage());
+                return "admin/courses/form";
+            }
+        }
+
+        if (course != null) {
         courseRepository.save(course);
         redirectAttributes.addFlashAttribute("success", "Course created successfully!");
+        } else {
+            redirectAttributes.addFlashAttribute("error", "Course data is invalid");
+        }
         return "redirect:/admin/courses";
     }
 
     @GetMapping("/edit/{id}")
-    public String showEditForm(@PathVariable Long id, Model model) {
+    public String showEditForm(@PathVariable("id") Long id, Model model) {
+        if (id == null) {
+            throw new IllegalArgumentException("Course ID cannot be null");
+        }
         Course course = courseRepository.findById(id)
             .orElseThrow(() -> new IllegalArgumentException("Invalid course Id:" + id));
         model.addAttribute("course", course);
@@ -98,12 +145,17 @@ public class AdminCourseController {
     }
 
     @PostMapping("/edit/{id}")
-    public String updateCourse(@PathVariable Long id,
+    public String updateCourse(@PathVariable("id") Long id,
                              @Valid @ModelAttribute Course course,
                              BindingResult result,
                              RedirectAttributes redirectAttributes,
                              @RequestParam(value = "categoryId", required = false) String categoryId,
-                             @RequestParam(value = "newCategory", required = false) String newCategory) {
+                             @RequestParam(value = "newCategory", required = false) String newCategory,
+                             @RequestParam(value = "imageFile", required = false) MultipartFile imageFile) {
+        if (id == null) {
+            redirectAttributes.addFlashAttribute("error", "Course ID cannot be null");
+            return "redirect:/admin/courses";
+        }
         if (result.hasErrors()) {
             return "admin/courses/form";
         }
@@ -116,12 +168,47 @@ public class AdminCourseController {
                 });
             course.setCategory(cat);
         } else if (categoryId != null && !"add_new".equals(categoryId)) {
-            Optional<Category> catOpt = categoryRepository.findById(Long.valueOf(categoryId));
+            try {
+                Long categoryIdLong = Long.valueOf(categoryId);
+                if (categoryIdLong != null) {
+                    Optional<Category> catOpt = categoryRepository.findById(categoryIdLong);
             catOpt.ifPresent(course::setCategory);
+                }
+            } catch (NumberFormatException e) {
+                result.rejectValue("category", "error.course", "Invalid category ID");
+                return "admin/courses/form";
+            }
         } else {
             result.rejectValue("category", "error.course", "Category is required");
             return "admin/courses/form";
         }
+
+        // Handle image upload
+        if (imageFile != null && !imageFile.isEmpty()) {
+            try {
+                String fileName = System.currentTimeMillis() + "_" + imageFile.getOriginalFilename();
+                Path uploadPath = Paths.get(UPLOAD_DIR);
+                if (!Files.exists(uploadPath)) {
+                    Files.createDirectories(uploadPath);
+                }
+                Path filePath = uploadPath.resolve(fileName);
+                Files.copy(imageFile.getInputStream(), filePath, StandardCopyOption.REPLACE_EXISTING);
+                course.setImage("/images/courses/" + fileName);
+            } catch (IOException e) {
+                redirectAttributes.addFlashAttribute("error", "Failed to upload image: " + e.getMessage());
+                return "admin/courses/form";
+            }
+        } else {
+            // Keep existing image if no new image uploaded
+            Optional<Course> existingCourseOpt = courseRepository.findById(id);
+            if (existingCourseOpt.isPresent()) {
+                Course existingCourse = existingCourseOpt.get();
+                if (existingCourse.getImage() != null) {
+                    course.setImage(existingCourse.getImage());
+                }
+            }
+        }
+
         course.setId(id);
         courseRepository.save(course);
         redirectAttributes.addFlashAttribute("success", "Course updated successfully!");
@@ -129,11 +216,46 @@ public class AdminCourseController {
     }
 
     @GetMapping("/delete/{id}")
-    public String deleteCourse(@PathVariable Long id, RedirectAttributes redirectAttributes) {
+    public String deleteCourse(@PathVariable("id") Long id, RedirectAttributes redirectAttributes) {
+        if (id == null) {
+            redirectAttributes.addFlashAttribute("error", "Course ID cannot be null");
+            return "redirect:/admin/courses";
+        }
         Course course = courseRepository.findById(id)
             .orElseThrow(() -> new IllegalArgumentException("Invalid course Id:" + id));
+        if (course != null) {
         courseRepository.delete(course);
+        }
         redirectAttributes.addFlashAttribute("success", "Course deleted successfully!");
         return "redirect:/admin/courses";
+    }
+
+    @GetMapping("/{id}/enrollers")
+    public String viewEnrollers(@PathVariable("id") Long id, Model model) {
+        if (id == null) {
+            throw new IllegalArgumentException("Course ID cannot be null");
+        }
+        Course course = courseRepository.findById(id)
+            .orElseThrow(() -> new IllegalArgumentException("Invalid course Id:" + id));
+        List<Enrollment> enrollments = enrollmentRepository.findByCourse(course);
+        model.addAttribute("course", course);
+        model.addAttribute("enrollments", enrollments);
+        return "admin/courses/enrollers";
+    }
+
+    @PostMapping("/{courseId}/enrollers/{enrollmentId}/approve")
+    public String approveEnrollment(@PathVariable("courseId") Long courseId,
+                                   @PathVariable("enrollmentId") Long enrollmentId,
+                                   RedirectAttributes redirectAttributes) {
+        if (courseId == null || enrollmentId == null) {
+            redirectAttributes.addFlashAttribute("error", "Invalid IDs");
+            return "redirect:/admin/courses";
+        }
+        Enrollment enrollment = enrollmentRepository.findById(enrollmentId)
+            .orElseThrow(() -> new IllegalArgumentException("Invalid enrollment Id:" + enrollmentId));
+        enrollment.setStatus("APPROVED");
+        enrollmentRepository.save(enrollment);
+        redirectAttributes.addFlashAttribute("success", "Enrollment approved successfully!");
+        return "redirect:/admin/courses/" + courseId + "/enrollers";
     }
 } 

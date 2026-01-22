@@ -17,13 +17,15 @@ public class SecurityConfig {
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
             .authorizeHttpRequests(auth -> auth
-                .requestMatchers("/login", "/register", "/css/**", "/js/**").permitAll() // Cho phép truy cập không cần đăng nhập
+                .requestMatchers("/", "/login", "/register", "/css/**", "/js/**", "/images/**").permitAll() // Public access
+                .requestMatchers("/courses", "/courses/**").permitAll() // Allow public viewing of courses
+                .requestMatchers("/enroll/**", "/user/**").authenticated() // Enrollment requires login
                 .requestMatchers("/admin/**").hasRole("ADMIN")
-                .requestMatchers("/user/**", "/home").hasRole("USER")
-                .anyRequest().authenticated() // Các request khác cần đăng nhập
+                .anyRequest().authenticated() // Other requests need authentication
             )
             .formLogin(form -> form
-                .loginPage("/login") // Trang login custom
+                .loginPage("/login") // Custom login page
+                .usernameParameter("username") // Spring Security uses 'username' by default, but we'll use email
                 .successHandler(customAuthenticationSuccessHandler)
                 .permitAll()
             )
@@ -31,7 +33,7 @@ public class SecurityConfig {
                 .logoutUrl("/logout")
                 .logoutSuccessUrl("/login?logout")
             )
-            .csrf(csrf -> csrf.disable()); // Có thể bật lại CSRF nếu muốn bảo mật hơn
+            .csrf(csrf -> csrf.disable()); // Can enable CSRF for better security
         return http.build();
     }
 

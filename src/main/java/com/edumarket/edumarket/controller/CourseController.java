@@ -52,7 +52,10 @@ public class CourseController {
     }
 
     @GetMapping("/{id}")
-    public String viewCourseDetail(@PathVariable Long id, Model model) {
+    public String viewCourseDetail(@PathVariable("id") Long id, Model model) {
+        if (id == null) {
+            throw new IllegalArgumentException("Course ID cannot be null");
+        }
         com.edumarket.edumarket.model.Course course = courseRepo.findById(id)
             .orElseThrow(() -> new IllegalArgumentException("Invalid course Id:" + id));
         model.addAttribute("course", course);

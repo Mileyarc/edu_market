@@ -25,6 +25,7 @@ public class CartController {
     private CourseRepository courseRepo;
 
     @GetMapping
+    @SuppressWarnings("unchecked")
     public String viewCart(HttpSession session, Model model) {
         List<CartItem> cart = (List<CartItem>) session.getAttribute("cart");
         if (cart == null) cart = new ArrayList<>();
@@ -33,7 +34,11 @@ public class CartController {
     }
 
     @PostMapping("/add/{id}")
-    public String addToCart(@PathVariable Long id, HttpSession session) {
+    @SuppressWarnings("unchecked")
+    public String addToCart(@PathVariable("id") Long id, HttpSession session) {
+        if (id == null) {
+            return "redirect:/courses";
+        }
         Course course = courseRepo.findById(id).orElse(null);
         if (course == null) return "redirect:/courses";
 
